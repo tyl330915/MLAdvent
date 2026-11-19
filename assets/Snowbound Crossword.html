@@ -1,0 +1,462 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Snowbound Crossword</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Young+Serif&display=swap">
+<style>
+/* Layout: one frosted puzzle card (clue bar, scrolling grid, toolbar) over a fixed snowy dusk scene, clue lists below.
+   Deliberately a single look: a winter night scene, so there is no light/dark switch. */
+:root {
+  --sky-top: #14224a;
+  --sky-mid: #34588a;
+  --sky-low: #a9c6e4;
+  --snow: #f4f9fd;
+  --ink: #162544;
+  --ink-soft: #4d6584;
+  --ice: #d3e8fb;
+  --line: #b7cbe2;
+  --lantern: #f3b04a;
+  --lantern-deep: #d98a1e;
+  --wrong: #c63d3d;
+  --wrong-bg: #fde3e1;
+  --pine: #1d3c4a;
+  --display: "Young Serif", Georgia, "Times New Roman", serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --cell: 36px;
+}
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+body {
+  margin: 0;
+  background: var(--sky-top);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.45;
+  padding-block: 28px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  min-height: 100vh;
+}
+
+/* ---------- scene ---------- */
+.sky {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(circle at 84% 14%, rgba(255,247,222,.55) 0, rgba(255,247,222,.18) 70px, transparent 190px),
+    linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
+}
+.moon {
+  position: fixed; z-index: 0; top: 11%; right: 14%;
+  width: 46px; height: 46px; border-radius: 50%;
+  background: #fff8e3; box-shadow: 0 0 30px 8px rgba(255,248,227,.45);
+}
+.scene {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 0;
+  width: 100%; height: min(36vh, 320px);
+  pointer-events: none;
+}
+#snow { position: fixed; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; }
+
+/* ---------- page ---------- */
+.wrap { position: relative; z-index: 2; max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+header { color: #f4f8fd; }
+h1 {
+  margin: 0; font-family: var(--display); font-weight: 400;
+  font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; letter-spacing: .005em;
+  text-wrap: balance; text-shadow: 0 2px 18px rgba(8,18,40,.45);
+}
+header p { margin: 8px 0 0; color: #c6d8ee; max-width: 60ch; text-shadow: 0 1px 8px rgba(8,18,40,.5); }
+
+.card {
+  background: rgba(244,249,253,.93);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(8,18,40,.35);
+}
+.puzzle { padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.clue-bar {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  min-height: 3.1em; padding: 10px 14px; border-radius: 10px;
+  background: var(--ice); border: 1px solid var(--line);
+}
+.clue-bar .tag {
+  font-weight: 700; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink); white-space: nowrap;
+}
+.clue-bar .txt { font-size: 1.08rem; font-weight: 600; min-width: 0; }
+.clue-bar .len { color: var(--ink-soft); font-weight: 400; white-space: nowrap; }
+
+.scroller { overflow-x: auto; padding: 4px 2px 10px; max-width: 100%; }
+.grid {
+  display: grid; width: max-content; gap: 2px;
+  grid-template-columns: repeat(var(--cols), var(--cell));
+  grid-auto-rows: var(--cell);
+}
+.cell {
+  position: relative; background: #fff; border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--line) inset;
+  transition: background-color .12s;
+}
+.cell.inword { background: var(--ice); }
+.cell.active { background: var(--lantern); box-shadow: 0 0 0 2px var(--lantern-deep) inset; }
+.cell.wrong { background: var(--wrong-bg); box-shadow: 0 0 0 2px var(--wrong) inset; }
+.cell.wrong input { color: var(--wrong); }
+.cell .num {
+  position: absolute; top: 2px; left: 4px; font-size: 10px; line-height: 1; font-weight: 700;
+  color: var(--ink-soft); pointer-events: none;
+}
+.cell.active .num { color: var(--ink); }
+.cell input {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  border: 0; outline: 0; background: transparent; padding: 7px 0 0; margin: 0;
+  text-align: center; text-transform: uppercase;
+  font: 700 calc(var(--cell) * .54) var(--body); color: var(--ink);
+  caret-color: transparent; cursor: pointer; border-radius: 4px;
+}
+.cell input::selection { background: transparent; }
+
+.toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.toolbar .grow { flex: 1 1 auto; }
+.stat { font-size: .92rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.stat b { color: var(--ink); }
+.saved { font-size: .85rem; color: var(--ink-soft); }
+button { font: inherit; cursor: pointer; }
+.btn {
+  border: 1px solid var(--ink); background: var(--ink); color: #fff;
+  padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: .95rem;
+}
+.btn.quiet { background: transparent; color: var(--ink); }
+.btn:hover { filter: brightness(1.15); }
+.btn.quiet:hover { background: var(--ice); filter: none; }
+.btn:focus-visible, .clue:focus-visible { outline: 3px solid var(--lantern-deep); outline-offset: 2px; }
+.msg { min-height: 1.4em; font-weight: 600; margin: 0; }
+
+.lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px; }
+.lists section { padding: 16px 12px 12px; min-width: 0; }
+.lists h2 {
+  margin: 0 0 8px 8px; font-family: var(--display); font-weight: 400; font-size: 1.4rem;
+}
+.lists ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.clue {
+  display: grid; grid-template-columns: 2.4rem 1fr auto; gap: 8px; align-items: baseline;
+  width: 100%; text-align: left; background: transparent; border: 0; color: var(--ink);
+  padding: 7px 8px; border-radius: 8px;
+}
+.clue:hover { background: rgba(211,232,251,.6); }
+.clue .n { font-weight: 700; font-variant-numeric: tabular-nums; }
+.clue .l { color: var(--ink-soft); font-size: .85rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.clue[aria-current="true"] { background: var(--ice); box-shadow: 0 0 0 1px var(--line) inset; }
+.clue.done .t { color: var(--ink-soft); }
+.clue.done .n::after { content: " \2713"; font-weight: 600; color: var(--ink-soft); }
+
+@media (max-width: 640px) {
+  :root { --cell: 31px; }
+  .puzzle { padding: 12px; }
+  .clue-bar .txt { font-size: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) { .cell { transition: none; } }
+</style>
+
+<div class="sky" aria-hidden="true"></div>
+<div class="moon" aria-hidden="true"></div>
+<canvas id="snow" aria-hidden="true"></canvas>
+
+<svg class="scene" viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+  <defs>
+    <symbol id="pine" viewBox="0 0 40 80">
+      <rect x="18" y="64" width="4" height="14" fill="#3b2f2a"/>
+      <polygon points="20,2 31,24 9,24" fill="#1d3c4a"/>
+      <polygon points="20,16 34,46 6,46" fill="#1d3c4a"/>
+      <polygon points="20,34 38,68 2,68" fill="#1d3c4a"/>
+      <polygon points="20,2 25,13 15,13" fill="#eef5fb"/>
+      <polygon points="20,16 27,31 13,31" fill="#eef5fb"/>
+      <polygon points="20,34 29,53 11,53" fill="#eef5fb"/>
+    </symbol>
+  </defs>
+  <path d="M0 210 C 160 150, 320 150, 520 190 S 860 120, 1080 160 S 1340 150, 1440 130 L1440 320 L0 320 Z" fill="#c9dcef"/>
+  <use href="#pine" x="70" y="118" width="38" height="76"/>
+  <use href="#pine" x="118" y="132" width="30" height="60"/>
+  <use href="#pine" x="610" y="120" width="34" height="68"/>
+  <use href="#pine" x="1010" y="96" width="40" height="80"/>
+  <use href="#pine" x="1060" y="112" width="30" height="60"/>
+  <use href="#pine" x="1350" y="84" width="36" height="72"/>
+  <path d="M0 262 C 220 212, 420 214, 640 244 S 1040 200, 1240 236 S 1400 238, 1440 226 L1440 320 L0 320 Z" fill="#f4f9fd"/>
+  <use href="#pine" x="180" y="186" width="52" height="104"/>
+  <use href="#pine" x="244" y="206" width="38" height="76"/>
+  <use href="#pine" x="880" y="176" width="56" height="112"/>
+  <use href="#pine" x="1180" y="190" width="46" height="92"/>
+  <use href="#pine" x="1240" y="210" width="34" height="68"/>
+</svg>
+
+<div class="wrap">
+  <header>
+    <h1>Snowbound Crossword</h1>
+    <p>24 clues to fill in. Click a square and start typing; your answers save on their own in this browser.</p>
+  </header>
+
+  <div class="card puzzle">
+    <div class="clue-bar" aria-live="polite">
+      <span class="tag" id="bar-tag"></span>
+      <span class="txt" id="bar-txt"></span>
+    </div>
+    <div class="scroller" id="scroller">
+      <div class="grid" id="grid" role="group" aria-label="Crossword grid"></div>
+    </div>
+    <div class="toolbar">
+      <span class="stat" id="progress"></span>
+      <span class="saved" id="saved">Autosave on</span>
+      <span class="grow"></span>
+      <button class="btn" id="check" type="button">Check answers</button>
+      <button class="btn quiet" id="clear" type="button">Clear all</button>
+    </div>
+    <p class="msg" id="msg" aria-live="polite"></p>
+  </div>
+
+  <div class="lists">
+    <section class="card"><h2>Across</h2><ul id="across"></ul></section>
+    <section class="card"><h2>Down</h2><ul id="down"></ul></section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var PUZ = {"w": 29, "h": 10, "words": [{"n": 8, "w": "BEACH", "r": 1, "c": 10, "d": "A", "clue": "Place to detach a leash or two", "num": 3, "len": 5}, {"n": 21, "w": "WINDRUSH", "r": 1, "c": 19, "d": "A", "clue": "Better hurry to get off the river – there's a fast breeze coming!", "num": 4, "len": 8}, {"n": 9, "w": "WALES", "r": 2, "c": 3, "d": "A", "clue": "Big beasts, small country", "num": 6, "len": 5}, {"n": 3, "w": "ECHO", "r": 3, "c": 0, "d": "A", "clue": "A dog, repeatedly", "num": 7, "len": 4}, {"n": 17, "w": "GOWER", "r": 3, "c": 8, "d": "A", "clue": "Really just a big Welsh point.", "num": 9, "len": 5}, {"n": 10, "w": "JASPER", "r": 3, "c": 21, "d": "A", "clue": "A place in the Canadian Rockies named after a rock", "num": 10, "len": 6}, {"n": 1, "w": "APPLETREE", "r": 4, "c": 12, "d": "A", "clue": "It's the point.", "num": 12, "len": 9}, {"n": 11, "w": "MALIGNE", "r": 5, "c": 3, "d": "A", "clue": "An evil body of water? (First word)", "num": 13, "len": 7}, {"n": 19, "w": "MUMBLES", "r": 5, "c": 22, "d": "A", "clue": "Sounds like a mouth full of Welsh marbles.", "num": 15, "len": 7}, {"n": 4, "w": "MERLIN", "r": 7, "c": 10, "d": "A", "clue": "Bunny wizard", "num": 17, "len": 6}, {"n": 18, "w": "CHAMPLAIN", "r": 7, "c": 17, "d": "A", "clue": "Explorer's lake", "num": 18, "len": 9}, {"n": 24, "w": "BEAVER", "r": 8, "c": 1, "d": "A", "clue": "The tail is delicious covered in cinnamon", "num": 19, "len": 6}, {"n": 20, "w": "HAWLEY", "r": 9, "c": 7, "d": "A", "clue": "A new group name for a collection of old geneologists?", "num": 20, "len": 6}, {"n": 13, "w": "GRIZZLY", "r": 9, "c": 14, "d": "A", "clue": "Better have the spray ready for this", "num": 21, "len": 7}, {"n": 22, "w": "LABRADOR", "r": 0, "c": 12, "d": "D", "clue": "Doggy Canadian province", "num": 1, "len": 8}, {"n": 16, "w": "SUNSET", "r": 0, "c": 16, "d": "D", "clue": "Gets a rating every evening", "num": 2, "len": 6}, {"n": 14, "w": "WATERFALL", "r": 1, "c": 19, "d": "D", "clue": "Lots of these in the mountains, but don't go chasing them", "num": 4, "len": 9}, {"n": 23, "w": "SWANSEA", "r": 1, "c": 28, "d": "D", "clue": "Welsh town like a bird on the water", "num": 5, "len": 7}, {"n": 5, "w": "WORM", "r": 2, "c": 3, "d": "D", "clue": "Seems a little small to describe a dragon.", "num": 6, "len": 4}, {"n": 6, "w": "CAMP", "r": 3, "c": 1, "d": "D", "clue": "Somewhat more than a tent.", "num": 8, "len": 4}, {"n": 7, "w": "GONDOLA", "r": 3, "c": 8, "d": "D", "clue": "Goes up a mountain, as well as along a canal.", "num": 9, "len": 7}, {"n": 15, "w": "SQUEAK", "r": 3, "c": 23, "d": "D", "clue": "Rodent noise, or a noisy rodent", "num": 11, "len": 6}, {"n": 12, "w": "LAKE", "r": 5, "c": 5, "d": "D", "clue": "An evil body of water? (Second word)", "num": 14, "len": 4}, {"n": 2, "w": "BANFF", "r": 5, "c": 25, "d": "D", "clue": "Gateway to the Rockies? More like a loud thump.", "num": 16, "len": 5}]};
+  var W = PUZ.w, H = PUZ.h, words = PUZ.words;
+  var KEY = 'snowbound-crossword-v1';
+  var sig = words.map(function (x) { return x.w + x.r + x.c + x.d; }).join('|');
+
+  var cells = new Map();
+  words.forEach(function (wd, i) {
+    wd.id = i; wd.cells = [];
+    for (var k = 0; k < wd.len; k++) {
+      var r = wd.r + (wd.d === 'D' ? k : 0), c = wd.c + (wd.d === 'A' ? k : 0), key = r + ',' + c;
+      var ce = cells.get(key);
+      if (!ce) { ce = { r: r, c: c, key: key, ans: wd.w[k], words: {}, num: 0 }; cells.set(key, ce); }
+      ce.words[wd.d] = wd; wd.cells.push(ce);
+    }
+    wd.cells[0].num = wd.num;
+  });
+
+  var gridEl = document.getElementById('grid');
+  var scroller = document.getElementById('scroller');
+  gridEl.style.setProperty('--cols', W);
+  var cur = { ce: null, dir: 'A' };
+
+  /* ---------- build grid ---------- */
+  for (var r = 0; r < H; r++) {
+    for (var c = 0; c < W; c++) {
+      var ce = cells.get(r + ',' + c);
+      if (!ce) { gridEl.appendChild(document.createElement('div')); continue; }
+      var el = document.createElement('div'); el.className = 'cell';
+      if (ce.num) { var n = document.createElement('span'); n.className = 'num'; n.textContent = ce.num; el.appendChild(n); }
+      var inp = document.createElement('input');
+      inp.type = 'text'; inp.maxLength = 1; inp.autocomplete = 'off'; inp.spellcheck = false;
+      inp.setAttribute('autocapitalize', 'characters'); inp.setAttribute('autocorrect', 'off');
+      inp.setAttribute('aria-label', 'Row ' + (r + 1) + ', column ' + (c + 1));
+      el.appendChild(inp); gridEl.appendChild(el);
+      ce.el = el; ce.input = inp;
+      wire(ce);
+    }
+  }
+
+  function wire(ce) {
+    var inp = ce.input;
+    inp.addEventListener('pointerdown', function () { ce.wasCur = (cur.ce === ce && document.activeElement === inp); });
+    inp.addEventListener('click', function () {
+      var dir = cur.dir;
+      if (ce.wasCur && ce.words.A && ce.words.D) dir = dir === 'A' ? 'D' : 'A';
+      select(ce, dir);
+    });
+    inp.addEventListener('focus', function () { if (cur.ce !== ce) select(ce, cur.dir, false); inp.select(); });
+    inp.addEventListener('input', function () {
+      var v = inp.value.replace(/[^a-zA-Z]/g, '').slice(-1).toUpperCase();
+      inp.value = v; ce.el.classList.remove('wrong');
+      changed();
+      if (v) stepForward(ce);
+    });
+    inp.addEventListener('keydown', function (e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      var k = e.key;
+      if (k === 'Backspace') {
+        e.preventDefault();
+        if (inp.value) { inp.value = ''; ce.el.classList.remove('wrong'); changed(); }
+        else {
+          var wd = cur.ce.words[cur.dir], i = wd.cells.indexOf(ce), prev = wd.cells[i - 1];
+          if (prev) { prev.input.value = ''; prev.el.classList.remove('wrong'); select(prev, cur.dir); changed(); }
+        }
+      } else if (k === 'Delete') {
+        e.preventDefault(); inp.value = ''; ce.el.classList.remove('wrong'); changed();
+      } else if (k === 'ArrowLeft') { e.preventDefault(); arrow(0, -1); }
+      else if (k === 'ArrowRight') { e.preventDefault(); arrow(0, 1); }
+      else if (k === 'ArrowUp') { e.preventDefault(); arrow(-1, 0); }
+      else if (k === 'ArrowDown') { e.preventDefault(); arrow(1, 0); }
+      else if (k === 'Tab' || k === 'Enter') { e.preventDefault(); nextWord(e.shiftKey ? -1 : 1); }
+      else if (k === ' ') { e.preventDefault(); if (ce.words.A && ce.words.D) select(ce, cur.dir === 'A' ? 'D' : 'A'); }
+    });
+  }
+
+  /* ---------- selection ---------- */
+  function select(ce, dir, focus) {
+    if (!ce.words[dir]) dir = dir === 'A' ? 'D' : 'A';
+    cur.ce = ce; cur.dir = dir; paint();
+    if (focus !== false) { ce.input.focus({ preventScroll: true }); ce.input.select(); ensureVisible(ce); }
+  }
+  function ensureVisible(ce) {
+    var a = ce.el.getBoundingClientRect(), b = scroller.getBoundingClientRect();
+    if (a.left < b.left + 8) scroller.scrollLeft -= (b.left + 8 - a.left) + 40;
+    else if (a.right > b.right - 8) scroller.scrollLeft += (a.right - b.right + 8) + 40;
+  }
+  function stepForward(ce) {
+    var wd = ce.words[cur.dir], next = wd.cells[wd.cells.indexOf(ce) + 1];
+    if (next) select(next, cur.dir); else ce.input.select();
+  }
+  function arrow(dr, dc) {
+    var want = dc !== 0 ? 'A' : 'D', ce = cur.ce;
+    if (cur.dir !== want && ce.words[want]) { select(ce, want); return; }
+    var nx = cells.get((ce.r + dr) + ',' + (ce.c + dc));
+    if (nx) select(nx, nx.words[want] ? want : cur.dir);
+  }
+  function nextWord(step) {
+    var wd = cur.ce.words[cur.dir], n = words.length;
+    var nw = words[(wd.id + step + n) % n];
+    var target = nw.cells.filter(function (x) { return !x.input.value; })[0] || nw.cells[0];
+    select(target, nw.d);
+  }
+
+  var barTag = document.getElementById('bar-tag'), barTxt = document.getElementById('bar-txt');
+  var clueBtns = [];
+  function paint() {
+    cells.forEach(function (ce) { ce.el.classList.remove('inword', 'active'); });
+    var wd = cur.ce.words[cur.dir];
+    wd.cells.forEach(function (ce) { ce.el.classList.add('inword'); });
+    cur.ce.el.classList.add('active');
+    barTag.textContent = wd.num + ' ' + (wd.d === 'A' ? 'Across' : 'Down');
+    barTxt.innerHTML = '';
+    barTxt.appendChild(document.createTextNode(wd.clue + ' '));
+    var l = document.createElement('span'); l.className = 'len'; l.textContent = '(' + wd.len + ')'; barTxt.appendChild(l);
+    clueBtns.forEach(function (b, i) { b.setAttribute('aria-current', i === wd.id ? 'true' : 'false'); });
+  }
+
+  /* ---------- clue lists ---------- */
+  words.forEach(function (wd) {
+    var li = document.createElement('li'), b = document.createElement('button');
+    b.type = 'button'; b.className = 'clue';
+    b.innerHTML = '<span class="n"></span><span class="t"></span><span class="l"></span>';
+    b.children[0].textContent = wd.num; b.children[1].textContent = wd.clue; b.children[2].textContent = '(' + wd.len + ')';
+    b.addEventListener('click', function () { select(wd.cells[0], wd.d); });
+    li.appendChild(b);
+    document.getElementById(wd.d === 'A' ? 'across' : 'down').appendChild(li);
+    clueBtns[wd.id] = b;
+  });
+
+  /* ---------- progress, save, load ---------- */
+  var total = cells.size, progressEl = document.getElementById('progress'), savedEl = document.getElementById('saved');
+  function updateProgress() {
+    var f = 0; cells.forEach(function (ce) { if (ce.input.value) f++; });
+    progressEl.innerHTML = '<b>' + f + '</b> of ' + total + ' letters filled';
+    words.forEach(function (wd) {
+      clueBtns[wd.id].classList.toggle('done', wd.cells.every(function (x) { return x.input.value; }));
+    });
+    return f;
+  }
+  function changed() {
+    document.getElementById('msg').textContent = '';
+    updateProgress(); save();
+  }
+  function save() {
+    try {
+      var o = {}; cells.forEach(function (ce) { if (ce.input.value) o[ce.key] = ce.input.value; });
+      localStorage.setItem(KEY, JSON.stringify({ sig: sig, cells: o }));
+      savedEl.textContent = 'All changes saved';
+    } catch (e) { savedEl.textContent = 'Saving is blocked in this browser'; }
+  }
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY); if (!raw) return;
+      var d = JSON.parse(raw); if (!d || d.sig !== sig) return;
+      cells.forEach(function (ce) { var v = d.cells[ce.key]; if (v && /^[A-Z]$/.test(v)) ce.input.value = v; });
+      savedEl.textContent = 'Restored your saved answers';
+    } catch (e) { /* storage unavailable: start empty */ }
+  }
+
+  /* ---------- check and clear ---------- */
+  var msg = document.getElementById('msg');
+  document.getElementById('check').addEventListener('click', function () {
+    var wrong = 0, filled = 0;
+    cells.forEach(function (ce) {
+      ce.el.classList.remove('wrong');
+      if (ce.input.value) { filled++; if (ce.input.value !== ce.ans) { wrong++; ce.el.classList.add('wrong'); } }
+    });
+    if (!filled) msg.textContent = 'Nothing to check yet.';
+    else if (wrong) msg.textContent = wrong + (wrong === 1 ? ' letter needs' : ' letters need') + ' another look (marked in red).';
+    else if (filled === total) msg.textContent = 'Solved. Every answer is correct.';
+    else msg.textContent = 'So far so good: every letter you have entered is right.';
+  });
+  var clearBtn = document.getElementById('clear'), clearTimer = null;
+  clearBtn.addEventListener('click', function () {
+    if (!clearTimer) {
+      clearBtn.textContent = 'Click again to clear everything';
+      clearTimer = setTimeout(function () { clearBtn.textContent = 'Clear all'; clearTimer = null; }, 3500);
+      return;
+    }
+    clearTimeout(clearTimer); clearTimer = null; clearBtn.textContent = 'Clear all';
+    cells.forEach(function (ce) { ce.input.value = ''; ce.el.classList.remove('wrong'); });
+    changed();
+  });
+
+  /* ---------- start ---------- */
+  load(); updateProgress();
+  select(words[0].cells[0], words[0].d, false);
+
+  /* ---------- falling snow ---------- */
+  var cv = document.getElementById('snow'), ctx = cv.getContext('2d');
+  var flakes = [], sw = 0, sh = 0, raf = 0;
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function mk(init) {
+    var z = Math.random();
+    return { x: Math.random() * sw, y: init ? Math.random() * sh : -6, r: 0.8 + z * 2.4, v: 0.35 + z * 1.1, s: Math.random() * 6.28, a: 0.45 + z * 0.5 };
+  }
+  function resize() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    sw = window.innerWidth; sh = window.innerHeight;
+    cv.width = sw * dpr; cv.height = sh * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var n = Math.round(Math.min(170, sw / 8));
+    flakes = []; for (var i = 0; i < n; i++) flakes.push(mk(true));
+    draw();
+  }
+  function draw() {
+    ctx.clearRect(0, 0, sw, sh); ctx.fillStyle = '#ffffff';
+    for (var i = 0; i < flakes.length; i++) {
+      var f = flakes[i]; ctx.globalAlpha = f.a; ctx.beginPath(); ctx.arc(f.x, f.y, f.r, 0, 6.283); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  function tick() {
+    for (var i = 0; i < flakes.length; i++) {
+      var f = flakes[i]; f.y += f.v; f.s += 0.012; f.x += Math.sin(f.s) * 0.4;
+      if (f.y > sh + 6) flakes[i] = mk(false);
+    }
+    draw(); raf = requestAnimationFrame(tick);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  if (!reduce) {
+    raf = requestAnimationFrame(tick);
+    document.addEventListener('visibilitychange', function () {
+      cancelAnimationFrame(raf); if (!document.hidden) raf = requestAnimationFrame(tick);
+    });
+  }
+})();
+</script>
+<script>
+window.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' || e.code === 'Escape') {
+    e.preventDefault();
+    try { window.parent.postMessage({ type: 'advent-close' }, '*'); } catch (err) {}
+  }
+});
+</script>
+
+</body></html>

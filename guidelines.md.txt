@@ -1,0 +1,21 @@
+### Project: Advent Calendar
+
+### Overview: 
+This will be a clickable image of a Cotswold village, with houses lining a road snaking up to the top of a hill, on which there is a Christmas tree. The houses will be made of traditional Cotswold stone, and have doors in primary colors, numbered 1-24. The tree will be numbered “25”. 
+
+## Animations: 
+The village will gradually transition from day to night, or become covered by snow. These animations will happen randomly at the when the image loads. There will also be other small animations in the village, such as a fox running up the road, or a Golden Retriever coming up to the viewer, and licking the “lens”. 
+
+## Timing: The numbered doors will become clickable on the date of their number. Starting on the 1st of the month (taken from system time), door #1 will become clickable, and so on up until the 25th, at which point all of the doors will become clickable. Any date past the current date of the month will allow a door to become clickable: for instance, on the 10th, doors 10 to 1 will all be clickable. 
+
+## Actions:
+When a door is clicked, it will start a video file, an image, or a game, which should expand to 90% of the full screen, and have a clickable X for a close button. The assets will be in the “assets” folder, and be numbered corresponding to the date number. For instance, the asset which should be displayed on day 1 (the first of December) will have the prefix 1.
+
+To begin, code the above in JavaScript and HTML, so that we can begin to tweak it as necessary. Make all doors accessible. Put 1.mp4 as the link for door 1. 
+
+
+
+
+
+
+

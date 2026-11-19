@@ -1,0 +1,305 @@
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #0d0a12;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stage {
+  position: relative;
+  aspect-ratio: 1376 / 768;
+  width: min(100vw, calc(100vh * 1376 / 768));
+  max-height: 100vh;
+  overflow: hidden;
+  container-type: inline-size;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.7);
+}
+
+.stage .background {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.hotspots {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- "25" badge on the tree ---------- */
+
+.tree-number {
+  position: absolute;
+  left: 51%;
+  top: 21.9%;
+  transform: translate(-50%, -50%);
+  font-family: "Times New Roman", Times, serif;
+  font-weight: 700;
+  font-size: 1.6cqw;
+  font-variant-numeric: lining-nums tabular-nums;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: #f4ecd6;
+  pointer-events: none;
+  user-select: none;
+  z-index: 3;
+}
+
+/* ---------- Number hotspots ---------- */
+
+.hotspot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hotspot:hover {
+  background: rgba(255, 238, 170, 0.14);
+  box-shadow: 0 0 0 2px rgba(255, 224, 128, 0.9), 0 0 24px rgba(255, 205, 80, 0.65);
+}
+
+.hotspot:focus-visible {
+  outline: none;
+  background: rgba(255, 238, 170, 0.2);
+  box-shadow: 0 0 0 3px #ffe08a, 0 0 28px rgba(255, 205, 80, 0.85);
+}
+
+.hotspot.locked {
+  cursor: not-allowed;
+}
+
+.hotspot.locked:hover {
+  background: rgba(150, 170, 210, 0.1);
+  box-shadow: 0 0 0 2px rgba(170, 190, 230, 0.55);
+}
+
+.hotspot.locked:focus-visible {
+  background: rgba(150, 170, 210, 0.14);
+  box-shadow: 0 0 0 3px rgba(180, 200, 240, 0.85);
+}
+
+.hotspot.today {
+  z-index: 2;
+  animation: todayPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes todayPulse {
+  0%, 100% {
+    background: rgba(255, 228, 120, 0.12);
+    box-shadow: 0 0 0 3px rgba(255, 214, 90, 0.9),
+                0 0 14px 4px rgba(255, 196, 60, 0.55);
+  }
+  50% {
+    background: rgba(255, 236, 160, 0.26);
+    box-shadow: 0 0 0 5px rgba(255, 232, 130, 1),
+                0 0 32px 14px rgba(255, 196, 60, 0.85);
+  }
+}
+
+.hotspots.debug .hotspot {
+  border-color: #00e5ff;
+  background: rgba(0, 229, 255, 0.14);
+}
+.hotspots.debug .hotspot::after {
+  content: attr(data-num);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #00e5ff;
+  font: 700 15px monospace;
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+  pointer-events: none;
+}
+
+/* ---------- Snowfall ---------- */
+
+.snow-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 3s ease;
+  z-index: 5;
+}
+.snow-layer.active { opacity: 1; }
+
+.flake {
+  position: absolute;
+  top: -5vh;
+  background: #fff;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: fall linear infinite;
+}
+@keyframes fall {
+  0% { transform: translate3d(0, -10vh, 0); }
+  100% { transform: translate3d(var(--drift, 20px), 110vh, 0); }
+}
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  transform: translate(-50%, 20px);
+  background: rgba(18, 14, 26, 0.92);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 10;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------- Modal ---------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(3px);
+  z-index: 100;
+}
+.modal.open { display: flex; }
+
+.modal-content {
+  position: relative;
+  width: 90vw;
+  height: 90vh;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.09);
+  animation: modalIn 0.25s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-body {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #050505;
+}
+.modal-body video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.modal-body img {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+.modal-body iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 3px;
+  transition: background 0.15s ease;
+  z-index: 2;
+}
+.modal-close:hover { background: rgba(255, 255, 255, 0.3); }
+.modal-close:focus-visible {
+  outline: 3px solid #ffd257;
+  outline-offset: 2px;
+}
+
+.placeholder {
+  color: #f0e8d8;
+  text-align: center;
+  padding: 32px;
+  max-width: 520px;
+}
+.placeholder .gift-num {
+  font-size: 64px;
+  font-weight: 800;
+  color: #ffd257;
+  margin-bottom: 8px;
+}
+.placeholder h2 {
+  font-size: 28px;
+  margin: 0 0 12px;
+  font-weight: 700;
+}
+.placeholder p {
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+  opacity: 0.85;
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .flake,
+  .modal-content,
+  .hotspot.today {
+    animation: none !important;
+  }
+  .hotspot.today {
+    box-shadow: 0 0 0 4px rgba(255, 224, 120, 0.95),
+                0 0 20px 8px rgba(255, 196, 60, 0.7);
+  }
+  .snow-layer {
+    transition-duration: 0.01s !important;
+  }
+}
