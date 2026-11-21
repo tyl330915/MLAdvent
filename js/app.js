@@ -71,7 +71,7 @@
   }
 
   const TODAY = resolveToday();
-  const UNLOCK_ALL = true;
+  const UNLOCK_ALL = false;
 
   function isUnlocked(num) {
     return UNLOCK_ALL || num <= TODAY;
